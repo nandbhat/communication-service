@@ -1,4 +1,7 @@
 {
+  "name": "commnication-serice",
+  "version": "0.0.1",
+  "description": "An App",
   "scripts": {
     "dev": "bun run --hot src/index.ts"
   },
