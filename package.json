@@ -6,9 +6,11 @@
     "dev": "bun run --hot src/index.ts"
   },
   "dependencies": {
+    "amqplib": "^0.10.3",
     "hono": "^3.5.4"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.10.1",
     "bun-types": "^0.6.2"
   }
 }
