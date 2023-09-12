@@ -3,6 +3,8 @@ import pkg from '../package.json'
 import amqp from 'amqplib'
 import { prettyJSON } from 'hono/pretty-json'
 import { logger } from 'hono/logger'
+import sms from './sms'
+
 
 
 const app = new Hono()
@@ -43,10 +45,18 @@ async function startQueueProcessing() {
     channel.consume(queueName, (message) => {
         if (message !== null) {
             const payload = JSON.parse(message.content.toString());
+            redirectMessage(payload.message)
             console.log('Processing message:', payload.message);
             channel.ack(message);
         }
     });
+}
+
+const redirectMessage = (messageDetails: { body: any; users: any; type: any; title: any }) => {
+    const { body, users, type, title } = messageDetails
+    if (type == "sms") {
+        users.forEach((user: any) => sms.send(body, user))
+    }
 }
 
 startQueueProcessing();
