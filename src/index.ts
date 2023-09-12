@@ -1,15 +1,15 @@
 import { Hono } from 'hono'
 import pkg from '../package.json'
-import amqp from 'amqplib/callback_api'
+import amqp from 'amqplib'
+import { prettyJSON } from 'hono/pretty-json'
+import { logger } from 'hono/logger'
 
 
 const app = new Hono()
+const rabbitmqUrl = 'amqp://localhost';
 
-app.get('/', (c) => c.json({
-    ok: true,
-    message: 'Hello Hono!',
-}))
-
+app.use('*', logger())
+app.use('*', prettyJSON())
 app.get('/info', (c) => c.json({
     ok: true,
     name: pkg.name,
@@ -17,57 +17,37 @@ app.get('/info', (c) => c.json({
 }))
 
 
-amqp.connect('amqp://localhost', function(error0, connection) {
-    if (error0) {
-        throw error0;
-    }
-    connection.createChannel(function(error1, channel) {
-        if (error1) {
-            throw error1;
+app.post('/notify', async (c) => {
+    const requestBody = await c.req.json()
+    const { type, title, users, body } = requestBody
+    const channel = await createConnection();
+    const queueName = "notifications"
+    const message = { type, title, users, body}
+    channel.sendToQueue(queueName, Buffer.from(JSON.stringify({ message })));
+    return c.json({ "status" : "successful" })
+})
+
+async function createConnection() {
+    const queueName = "notifications"
+    // @ts-ignore
+    const connection = await amqp.connect(rabbitmqUrl);
+    const channel = await connection.createChannel();
+    await channel.assertQueue(queueName)
+    return channel;
+}
+
+async function startQueueProcessing() {
+    const channel = await createConnection();
+    const queueName = "notifications"
+    await channel.assertQueue(queueName)
+    channel.consume(queueName, (message) => {
+        if (message !== null) {
+            const payload = JSON.parse(message.content.toString());
+            console.log('Processing message:', payload.message);
+            channel.ack(message);
         }
-
-        var queue = 'hello';
-        var msg = 'Hello World!';
-
-        channel.assertQueue(queue, {
-            durable: false
-        });
-        channel.sendToQueue(queue, Buffer.from(msg));
-
-        console.log(" [x] Sent %s", msg);
     });
-    setTimeout(function() {
-        connection.close();
-        process.exit(0);
-    }, 500);
-});
+}
 
-
-
-amqp.connect('amqp://localhost', function(error0, connection) {
-    if (error0) {
-        throw error0;
-    }
-    connection.createChannel(function(error1, channel) {
-        if (error1) {
-            throw error1;
-        }
-
-        var queue = 'hello';
-
-        channel.assertQueue(queue, {
-            durable: false
-        });
-
-        console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", queue);
-
-        channel.consume(queue, function(msg) {
-            // @ts-ignore
-            console.log(" [x] Received %s", msg.content.toString());
-        }, {
-            noAck: true
-        });
-    });
-});
-
+startQueueProcessing();
 export default app
