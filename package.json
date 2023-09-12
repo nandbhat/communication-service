@@ -7,7 +7,8 @@
   },
   "dependencies": {
     "amqplib": "^0.10.3",
-    "hono": "^3.5.4"
+    "hono": "^3.5.4",
+    "twilio": "^4.17.0"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.1",
