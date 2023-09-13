@@ -4,6 +4,7 @@ import amqp from 'amqplib'
 import { prettyJSON } from 'hono/pretty-json'
 import { logger } from 'hono/logger'
 import sms from './sms'
+import email from "./email";
 
 
 
@@ -56,6 +57,9 @@ const redirectMessage = (messageDetails: { body: any; users: any; type: any; tit
     const { body, users, type, title } = messageDetails
     if (type == "sms") {
         users.forEach((user: any) => sms.send(body, user))
+    }
+    if ( type == "email") {
+        users.forEach((user: any) => email.send(title, body, user))
     }
 }
 
